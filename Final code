@@ -1,0 +1,110 @@
+WriteMultipleFields.ino =
+
+#include <WiFiNINA.h>
+#include "secrets.h"
+#include "ThingSpeak.h" 
+#include "DHT.h"
+
+#define DHTPIN 2
+#define DHTTYPE DHT11   // Change this according to the type of DHT sensor you're using
+
+// WiFi credentials
+char ssid[] = SECRET_SSID;   
+char pass[] = SECRET_PASS;   
+WiFiClient  client;
+
+// ThingSpeak credentials
+unsigned long myChannelNumber = SECRET_CH_ID;
+const char * myWriteAPIKey = SECRET_WRITE_APIKEY;
+
+// Initialize DHT sensor
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);      
+  while (!Serial) {
+    ; 
+  }
+  
+  // Initialize ThingSpeak
+  ThingSpeak.begin(client);  
+
+  // Connect to WiFi
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(SECRET_SSID);
+    while(WiFi.status() != WL_CONNECTED){
+      WiFi.begin(ssid, pass);  
+      Serial.print(".");
+      delay(5000);     
+    } 
+    Serial.println("\nConnected.");
+  }
+
+  // Initialize DHT sensor
+  dht.begin();
+}
+
+void loop() {
+  // Wait a few seconds between measurements.
+  delay(2000);
+
+  // Reading temperature and humidity
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+
+  // Set the fields with the sensor data
+  ThingSpeak.setField(1, t);  // Field 1 for temperature in Celsius
+  ThingSpeak.setField(2, h);  // Field 2 for humidity
+
+  // Write to ThingSpeak channel
+  int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+  if(x == 200){
+    Serial.println("Channel update successful.");
+  }
+  else{
+    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
+  
+  Serial.print(F("Temperature: "));
+  Serial.print(t);
+  Serial.print(F("°C  Humidity: "));
+  Serial.print(h);
+  Serial.println(F("%"));
+
+
+
+
+
+
+secrets.h =
+
+// Use this file to store all of the private credentials 
+// and connection details
+
+#define SECRET_SSID "OPTUS_648BB_EXT"		// replace MySSID with your WiFi network name
+#define SECRET_PASS "reefsskyer5745"	// replace MyPassword with your WiFi password
+
+#define SECRET_CH_ID 2511965			// replace 0000000 with your channel number
+#define SECRET_WRITE_APIKEY "8IO68BMG1WMQL4V0"   // replace XYZ with your channel write API Key
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  delay(20000); // Wait 20 seconds before next update
+}
